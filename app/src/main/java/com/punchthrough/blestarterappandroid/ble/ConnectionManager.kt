@@ -103,6 +103,13 @@ object ConnectionManager {
             Timber.e("Not connected to ${device.address}, cannot perform characteristic read")
         }
     }
+    fun readSensorCharacteristic(device: BluetoothDevice, uuid: UUID) {
+        if (device.isConnected() ) {
+            enqueueOperation(CharacteristicRead(device, uuid))
+        }  else if (!device.isConnected()) {
+            Timber.e("Not connected to ${device.address}, cannot perform characteristic read")
+        }
+    }
 
     fun writeCharacteristic(
         device: BluetoothDevice,
@@ -568,4 +575,6 @@ object ConnectionManager {
     }
 
     private fun BluetoothDevice.isConnected() = deviceGattMap.containsKey(this)
+
+
 }
