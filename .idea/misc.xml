@@ -10,6 +10,7 @@
       <map>
         <entry key="..\:/Users/sclifford/Documents/HDipProject/ble-starter-android/app/src/main/res/layout/activity_ble_operations.xml" value="0.370018115942029" />
         <entry key="..\:/Users/sclifford/Documents/HDipProject/ble-starter-android/app/src/main/res/layout/activity_main.xml" value="0.370018115942029" />
+        <entry key="..\:/Users/sclifford/Documents/HDipProject/ble-starter-android/app/src/main/res/layout/edittext_hex_payload.xml" value="0.36367753623188404" />
         <entry key="..\:/Users/sclifford/Documents/HDipProject/ble-starter-android/app/src/main/res/layout/row_characteristic.xml" value="0.370018115942029" />
         <entry key="..\:/Users/sclifford/Documents/HDipProject/ble-starter-android/app/src/main/res/layout/row_scan_result.xml" value="0.370018115942029" />
       </map>
