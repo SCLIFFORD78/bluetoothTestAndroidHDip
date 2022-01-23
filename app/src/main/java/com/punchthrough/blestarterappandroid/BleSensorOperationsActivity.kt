@@ -16,6 +16,7 @@
 
 package com.punchthrough.blestarterappandroid
 
+import android.R.attr
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.bluetooth.BluetoothDevice
@@ -44,7 +45,10 @@ import kotlinx.android.synthetic.main.activity_ble_operations.log_text_view
 import kotlinx.android.synthetic.main.activity_ble_operations.mtu_field
 import kotlinx.android.synthetic.main.activity_ble_operations.request_mtu_button
 import kotlinx.android.synthetic.main.sensor_control.battery
+import kotlinx.android.synthetic.main.sensor_control.batteryLevel
+import kotlinx.android.synthetic.main.sensor_control.data
 import org.jetbrains.anko.alert
+import org.jetbrains.anko.db.INTEGER
 import org.jetbrains.anko.noButton
 import org.jetbrains.anko.selector
 import org.jetbrains.anko.yesButton
@@ -52,6 +56,14 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.UUID
+import android.R.attr.data
+import android.R.attr.data
+import kotlin.experimental.and
+import android.R.attr.data
+import kotlinx.android.synthetic.main.sensor_control.humidity
+import kotlinx.android.synthetic.main.sensor_control.temperature
+import kotlin.experimental.or
+
 
 class BleSensorOperationsActivity : AppCompatActivity() {
 
@@ -98,11 +110,10 @@ class BleSensorOperationsActivity : AppCompatActivity() {
 
 
         battery.setOnClickListener {
-            val batteryServiceUuid = UUID.fromString("0000180f-0000-1000-8000-00805f9b34fb")
-            val batteryLevelCharUuid = UUID.fromString("00002a19-0000-1000-8000-00805f9b34fb")
-            val test = device.uuids
-            ConnectionManager.readSensorCharacteristic(device, batteryServiceUuid)
-
+            checkBattery()
+        }
+        data.setOnClickListener{
+            readData()
         }
     }
 
@@ -185,6 +196,7 @@ class BleSensorOperationsActivity : AppCompatActivity() {
         hexField.showKeyboard()
     }
 
+    @OptIn(ExperimentalStdlibApi::class)
     private val connectionEventListener by lazy {
         ConnectionEventListener().apply {
             onDisconnect = {
@@ -198,6 +210,10 @@ class BleSensorOperationsActivity : AppCompatActivity() {
             }
 
             onCharacteristicRead = { _, characteristic ->
+                if (characteristic.uuid == UUID.fromString("00002a19-0000-1000-8000-00805f9b34fb")){
+                    val test =  Integer.decode(characteristic.value.toHexString())
+                    batteryLevel.text = "${Integer.decode(characteristic.value.toHexString())}%"
+                }
                 log("Read from ${characteristic.uuid}: ${characteristic.value.toHexString()}")
             }
 
@@ -210,6 +226,21 @@ class BleSensorOperationsActivity : AppCompatActivity() {
             }
 
             onCharacteristicChanged = { _, characteristic ->
+                if (characteristic.uuid == UUID.fromString("a8a82631-10a4-11e3-ab8c-f23c91aec05e")){
+                    val result = characteristic.value
+                    val temp =  (result[0].toInt().and(0xff)).or((result.get(1).toInt().rotateLeft(8)).and(0xff00) )//.and(0xff.toByte())
+                    val tempC = -46.85f + 175.72f * temp.toFloat() / 65536.toFloat()
+                    temperature.text = "${tempC} C"
+                    val hum =  (result[2].toInt().and(0xff)).or((result.get(3).toInt().rotateLeft(8)).and(0xff00) )//.and(0xff.toByte())
+                    val relHum = -6.0f + 125.0f * hum.toFloat() / 65536.toFloat()
+                    humidity.text = "${relHum}%"
+
+
+
+
+
+            }
+
                 log("Value changed on ${characteristic.uuid}: ${characteristic.value.toHexString()}")
             }
 
@@ -260,5 +291,15 @@ class BleSensorOperationsActivity : AppCompatActivity() {
     private fun String.hexToBytes() =
         this.chunked(2).map { it.toUpperCase(Locale.US).toInt(16).toByte() }.toByteArray()
 
+    private fun checkBattery(){
+        val batteryLevelCharUuid = UUID.fromString("00002a19-0000-1000-8000-00805f9b34fb")
+        val test = device.uuids
+        ConnectionManager.readSensorCharacteristic(device, batteryLevelCharUuid)
 
+    }
+
+    private fun readData(){
+        val bluSensorData  = UUID.fromString("a8a82631-10a4-11e3-ab8c-f23c91aec05e")
+        ConnectionManager.enableSensorNotifications(device, bluSensorData )
+    }
 }

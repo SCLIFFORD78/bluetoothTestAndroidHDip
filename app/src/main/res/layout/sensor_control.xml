@@ -45,25 +45,36 @@
         />
 
     <TextView
-        android:id="@+id/textView"
+        android:id="@+id/batteryLevel"
         android:layout_width="254dp"
         android:layout_height="22dp"
         android:layout_marginStart="40dp"
         android:layout_marginTop="16dp"
-        android:text="TextView"
+        android:text="Battery"
         app:layout_constraintStart_toEndOf="@+id/battery"
         app:layout_constraintTop_toTopOf="@+id/battery"
         />
 
     <TextView
-        android:id="@+id/textView2"
+        android:id="@+id/temperature"
         android:layout_width="254dp"
         android:layout_height="22dp"
         android:layout_marginStart="40dp"
         android:layout_marginTop="20dp"
-        android:text="TextView"
+        android:text="Temperature"
         app:layout_constraintStart_toEndOf="@+id/data"
-        app:layout_constraintTop_toBottomOf="@+id/textView"
+        app:layout_constraintTop_toBottomOf="@+id/batteryLevel"
+        />
+
+    <TextView
+        android:id="@+id/humidity"
+        android:layout_width="254dp"
+        android:layout_height="22dp"
+        android:layout_marginStart="40dp"
+        android:layout_marginTop="20dp"
+        android:text="Humidity"
+        app:layout_constraintStart_toEndOf="@+id/data"
+        app:layout_constraintTop_toBottomOf="@+id/temperature"
         />
 
     <ScrollView
@@ -72,7 +83,7 @@
         android:layout_height="0dp"
         android:layout_weight="1"
         android:padding="4dp"
-        app:layout_constraintTop_toBottomOf="@+id/data">
+        app:layout_constraintTop_toBottomOf="@+id/humidity">
 
         <TextView
             android:id="@+id/log_text_view"

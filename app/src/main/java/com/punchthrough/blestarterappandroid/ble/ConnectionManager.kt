@@ -105,6 +105,7 @@ object ConnectionManager {
     }
     fun readSensorCharacteristic(device: BluetoothDevice, uuid: UUID) {
         if (device.isConnected() ) {
+            val test = uuid.toString()
             enqueueOperation(CharacteristicRead(device, uuid))
         }  else if (!device.isConnected()) {
             Timber.e("Not connected to ${device.address}, cannot perform characteristic read")
@@ -166,6 +167,14 @@ object ConnectionManager {
             Timber.e("Not connected to ${device.address}, cannot enable notifications")
         } else if (!characteristic.isIndicatable() && !characteristic.isNotifiable()) {
             Timber.e("Characteristic ${characteristic.uuid} doesn't support notifications/indications")
+        }
+    }
+
+    fun enableSensorNotifications(device: BluetoothDevice, uuid: UUID) {
+        if (device.isConnected()        ) {
+            enqueueOperation(EnableNotifications(device, uuid))
+        } else if (!device.isConnected()) {
+            Timber.e("Not connected to ${device.address}, cannot enable notifications")
         }
     }
 
