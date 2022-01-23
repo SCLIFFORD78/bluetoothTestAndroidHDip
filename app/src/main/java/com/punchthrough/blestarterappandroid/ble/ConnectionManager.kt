@@ -29,6 +29,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.os.Handler
 import android.os.Looper
+import com.punchthrough.blestarterappandroid.MainActivity
 import timber.log.Timber
 import java.lang.ref.WeakReference
 import java.util.UUID
@@ -85,6 +86,7 @@ object ConnectionManager {
             enqueueOperation(Connect(device, context.applicationContext))
         }
     }
+
 
     fun teardownConnection(device: BluetoothDevice) {
         if (device.isConnected()) {
