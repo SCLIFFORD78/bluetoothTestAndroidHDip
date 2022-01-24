@@ -62,7 +62,11 @@ import kotlin.experimental.and
 import android.R.attr.data
 import kotlinx.android.synthetic.main.sensor_control.humidity
 import kotlinx.android.synthetic.main.sensor_control.temperature
+import kotlinx.android.synthetic.main.sensor_control.time
 import kotlin.experimental.or
+import android.R.array
+import kotlinx.android.synthetic.main.sensor_control.loggerRefTime
+import java.nio.ByteBuffer
 
 
 class BleSensorOperationsActivity : AppCompatActivity() {
@@ -114,6 +118,10 @@ class BleSensorOperationsActivity : AppCompatActivity() {
         }
         data.setOnClickListener{
             readData()
+        }
+
+        time.setOnClickListener {
+            readLoggerTimeReference()
         }
     }
 
@@ -211,8 +219,13 @@ class BleSensorOperationsActivity : AppCompatActivity() {
 
             onCharacteristicRead = { _, characteristic ->
                 if (characteristic.uuid == UUID.fromString("00002a19-0000-1000-8000-00805f9b34fb")){
-                    val test =  Integer.decode(characteristic.value.toHexString())
                     batteryLevel.text = "${Integer.decode(characteristic.value.toHexString())}%"
+                }else if(characteristic.uuid == UUID.fromString("a8a82636-10a4-11e3-ab8c-f23c91aec05e")){
+                    val test = characteristic.value
+                    val timestamp = toInt32(test)
+                    val date = SimpleDateFormat("dd/MM/yyyy HH:mm:ss").format(Date(timestamp.toLong()*1000))
+                    loggerRefTime.text = date.toString()
+                    print(timestamp)
                 }
                 log("Read from ${characteristic.uuid}: ${characteristic.value.toHexString()}")
             }
@@ -234,10 +247,6 @@ class BleSensorOperationsActivity : AppCompatActivity() {
                     val hum =  (result[2].toInt().and(0xff)).or((result.get(3).toInt().rotateLeft(8)).and(0xff00) )//.and(0xff.toByte())
                     val relHum = -6.0f + 125.0f * hum.toFloat() / 65536.toFloat()
                     humidity.text = "${relHum}%"
-
-
-
-
 
             }
 
@@ -291,6 +300,14 @@ class BleSensorOperationsActivity : AppCompatActivity() {
     private fun String.hexToBytes() =
         this.chunked(2).map { it.toUpperCase(Locale.US).toInt(16).toByte() }.toByteArray()
 
+    fun toInt32(bytes:ByteArray):Int {
+        if (bytes.size != 4) {
+            throw Exception("wrong len")
+        }
+        bytes.reverse()
+        return ByteBuffer.wrap(bytes).int
+    }
+
     private fun checkBattery(){
         val batteryLevelCharUuid = UUID.fromString("00002a19-0000-1000-8000-00805f9b34fb")
         val test = device.uuids
@@ -301,5 +318,10 @@ class BleSensorOperationsActivity : AppCompatActivity() {
     private fun readData(){
         val bluSensorData  = UUID.fromString("a8a82631-10a4-11e3-ab8c-f23c91aec05e")
         ConnectionManager.enableSensorNotifications(device, bluSensorData )
+    }
+
+    private fun readLoggerTimeReference(){
+        val loggerTimeReference = UUID.fromString("a8a82636-10a4-11e3-ab8c-f23c91aec05e")
+        ConnectionManager.readSensorCharacteristic(device, loggerTimeReference)
     }
 }
