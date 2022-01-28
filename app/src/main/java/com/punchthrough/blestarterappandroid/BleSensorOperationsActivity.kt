@@ -247,7 +247,15 @@ class BleSensorOperationsActivity : AppCompatActivity() {
                 }else if(characteristic.uuid == UUID.fromString("a8a82646-10a4-11e3-ab8c-f23c91aec05e")) {
                     val flashUsageTemp = toInt32(characteristic.value)
                     flashUsage.text = flashUsageTemp.toString()
-                }
+                }else if (characteristic.uuid == UUID.fromString("a8a82631-10a4-11e3-ab8c-f23c91aec05e")){
+                    val result = characteristic.value
+                    val temp =  (result[0].toInt().and(0xff)).or((result.get(1).toInt().rotateLeft(8)).and(0xff00) )
+                    val tempC = -46.85f + 175.72f * temp.toFloat() / 65536.toFloat()
+                    temperature.text = "${tempC} C"
+                    val hum =  (result[2].toInt().and(0xff)).or((result.get(3).toInt().rotateLeft(8)).and(0xff00) )//.and(0xff.toByte())
+                    val relHum = -6.0f + 125.0f * hum.toFloat() / 65536.toFloat()
+                    humidity.text = "${relHum}%"
+            }
                 log("Read from ${characteristic.uuid}: ${characteristic.value.toHexString()}")
             }
 
@@ -347,7 +355,7 @@ class BleSensorOperationsActivity : AppCompatActivity() {
 
     private fun readData(){
         val bluSensorData  = UUID.fromString("a8a82631-10a4-11e3-ab8c-f23c91aec05e")
-        ConnectionManager.enableSensorNotifications(device, bluSensorData )
+        ConnectionManager.readSensorCharacteristic(device, bluSensorData )
     }
 
     private fun readLoggerTimeReference(){
@@ -374,18 +382,12 @@ class BleSensorOperationsActivity : AppCompatActivity() {
     private fun readLoggerData(){
         val loggerControl  = UUID.fromString("a8a82635-10a4-11e3-ab8c-f23c91aec05e")
         val loggerData  = UUID.fromString("a8a82637-10a4-11e3-ab8c-f23c91aec05e")
-        val test = "1".encodeToByteArray(0,1)
-        val test2 = "1".toByteArray()
-        val test3 = "1"
-        val test4 = byteArrayOf(0x1)
-        print(test)
-        print(test4)
         characteristics.forEachByIndex { t -> if(t.uuid == loggerData){
             ConnectionManager.enableNotifications(device, t )
         } }
 
         characteristics.forEachByIndex { t -> if(t.uuid == loggerControl){
-            ConnectionManager.writeCharacteristic(device, t, test4)
+            ConnectionManager.writeCharacteristic(device, t, byteArrayOf(0x1))
         } }
 
 
