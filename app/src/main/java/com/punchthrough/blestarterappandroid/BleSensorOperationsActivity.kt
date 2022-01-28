@@ -16,7 +16,6 @@
 
 package com.punchthrough.blestarterappandroid
 
-import android.R.attr
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.bluetooth.BluetoothDevice
@@ -28,9 +27,6 @@ import android.view.View
 import android.view.inputmethod.InputMethodManager
 import android.widget.EditText
 import androidx.appcompat.app.AppCompatActivity
-import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
-import androidx.recyclerview.widget.SimpleItemAnimator
 import com.punchthrough.blestarterappandroid.ble.ConnectionEventListener
 import com.punchthrough.blestarterappandroid.ble.ConnectionManager
 import com.punchthrough.blestarterappandroid.ble.isIndicatable
@@ -39,34 +35,32 @@ import com.punchthrough.blestarterappandroid.ble.isReadable
 import com.punchthrough.blestarterappandroid.ble.isWritable
 import com.punchthrough.blestarterappandroid.ble.isWritableWithoutResponse
 import com.punchthrough.blestarterappandroid.ble.toHexString
-import kotlinx.android.synthetic.main.activity_ble_operations.characteristics_recycler_view
 import kotlinx.android.synthetic.main.activity_ble_operations.log_scroll_view
 import kotlinx.android.synthetic.main.activity_ble_operations.log_text_view
-import kotlinx.android.synthetic.main.activity_ble_operations.mtu_field
-import kotlinx.android.synthetic.main.activity_ble_operations.request_mtu_button
 import kotlinx.android.synthetic.main.sensor_control.battery
 import kotlinx.android.synthetic.main.sensor_control.batteryLevel
 import kotlinx.android.synthetic.main.sensor_control.data
+import kotlinx.android.synthetic.main.sensor_control.flashSize
+import kotlinx.android.synthetic.main.sensor_control.flashUsage
+import kotlinx.android.synthetic.main.sensor_control.getFlashSize
+import kotlinx.android.synthetic.main.sensor_control.getFlashUsage
+import kotlinx.android.synthetic.main.sensor_control.getLog
+import kotlinx.android.synthetic.main.sensor_control.humidity
+import kotlinx.android.synthetic.main.sensor_control.interval
+import kotlinx.android.synthetic.main.sensor_control.intervalText
+import kotlinx.android.synthetic.main.sensor_control.loggerRefTime
+import kotlinx.android.synthetic.main.sensor_control.temperature
+import kotlinx.android.synthetic.main.sensor_control.time
 import org.jetbrains.anko.alert
-import org.jetbrains.anko.db.INTEGER
+import org.jetbrains.anko.collections.forEachByIndex
 import org.jetbrains.anko.noButton
 import org.jetbrains.anko.selector
 import org.jetbrains.anko.yesButton
+import java.nio.ByteBuffer
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.UUID
-import android.R.attr.data
-import android.R.attr.data
-import kotlin.experimental.and
-import android.R.attr.data
-import kotlinx.android.synthetic.main.sensor_control.humidity
-import kotlinx.android.synthetic.main.sensor_control.temperature
-import kotlinx.android.synthetic.main.sensor_control.time
-import kotlin.experimental.or
-import android.R.array
-import kotlinx.android.synthetic.main.sensor_control.loggerRefTime
-import java.nio.ByteBuffer
 
 
 class BleSensorOperationsActivity : AppCompatActivity() {
@@ -122,6 +116,22 @@ class BleSensorOperationsActivity : AppCompatActivity() {
 
         time.setOnClickListener {
             readLoggerTimeReference()
+        }
+
+        interval.setOnClickListener {
+            readLoggerIntervalTime()
+        }
+
+        getLog.setOnClickListener {
+            readLoggerData()
+        }
+
+        getFlashSize.setOnClickListener {
+            readLoggerFlashSize()
+        }
+
+        getFlashUsage.setOnClickListener {
+            readLoggerFlashUsage()
         }
     }
 
@@ -221,11 +231,22 @@ class BleSensorOperationsActivity : AppCompatActivity() {
                 if (characteristic.uuid == UUID.fromString("00002a19-0000-1000-8000-00805f9b34fb")){
                     batteryLevel.text = "${Integer.decode(characteristic.value.toHexString())}%"
                 }else if(characteristic.uuid == UUID.fromString("a8a82636-10a4-11e3-ab8c-f23c91aec05e")){
-                    val test = characteristic.value
-                    val timestamp = toInt32(test)
+                    val timestamp = toInt32(characteristic.value)
                     val date = SimpleDateFormat("dd/MM/yyyy HH:mm:ss").format(Date(timestamp.toLong()*1000))
                     loggerRefTime.text = date.toString()
                     print(timestamp)
+                }else if(characteristic.uuid == UUID.fromString("a8a82634-10a4-11e3-ab8c-f23c91aec05e")){
+                    val interValSeconds = toInt16(characteristic.value)
+                    intervalText.text = interValSeconds.toString()
+                }else if(characteristic.uuid == UUID.fromString("a8a82637-10a4-11e3-ab8c-f23c91aec05e")){
+                    val test = characteristic.value
+                    print(test)
+                }else if(characteristic.uuid == UUID.fromString("a8a82950-10a4-11e3-ab8c-f23c91aec05e")) {
+                    val flashSizeTemp = toInt32(characteristic.value)
+                    flashSize.text = flashSizeTemp.toString()
+                }else if(characteristic.uuid == UUID.fromString("a8a82646-10a4-11e3-ab8c-f23c91aec05e")) {
+                    val flashUsageTemp = toInt32(characteristic.value)
+                    flashUsage.text = flashUsageTemp.toString()
                 }
                 log("Read from ${characteristic.uuid}: ${characteristic.value.toHexString()}")
             }
@@ -241,14 +262,16 @@ class BleSensorOperationsActivity : AppCompatActivity() {
             onCharacteristicChanged = { _, characteristic ->
                 if (characteristic.uuid == UUID.fromString("a8a82631-10a4-11e3-ab8c-f23c91aec05e")){
                     val result = characteristic.value
-                    val temp =  (result[0].toInt().and(0xff)).or((result.get(1).toInt().rotateLeft(8)).and(0xff00) )//.and(0xff.toByte())
+                    val temp =  (result[0].toInt().and(0xff)).or((result.get(1).toInt().rotateLeft(8)).and(0xff00) )
                     val tempC = -46.85f + 175.72f * temp.toFloat() / 65536.toFloat()
                     temperature.text = "${tempC} C"
                     val hum =  (result[2].toInt().and(0xff)).or((result.get(3).toInt().rotateLeft(8)).and(0xff00) )//.and(0xff.toByte())
                     val relHum = -6.0f + 125.0f * hum.toFloat() / 65536.toFloat()
                     humidity.text = "${relHum}%"
-
-            }
+                    }else if(characteristic.uuid == UUID.fromString("a8a82637-10a4-11e3-ab8c-f23c91aec05e")){
+                        val test = characteristic.value
+                        print(test)
+                    }
 
                 log("Value changed on ${characteristic.uuid}: ${characteristic.value.toHexString()}")
             }
@@ -308,11 +331,18 @@ class BleSensorOperationsActivity : AppCompatActivity() {
         return ByteBuffer.wrap(bytes).int
     }
 
+    @OptIn(ExperimentalStdlibApi::class)
+    fun toInt16(bytes:ByteArray):Int {
+        if (bytes.size != 2) {
+            throw Exception("wrong len")
+        }
+        val result =  (bytes[0].toInt().and(0xff)).or((bytes.get(1).toInt().rotateLeft(8)).and(0xff00) )
+        return result
+    }
+
     private fun checkBattery(){
         val batteryLevelCharUuid = UUID.fromString("00002a19-0000-1000-8000-00805f9b34fb")
-        val test = device.uuids
         ConnectionManager.readSensorCharacteristic(device, batteryLevelCharUuid)
-
     }
 
     private fun readData(){
@@ -323,5 +353,41 @@ class BleSensorOperationsActivity : AppCompatActivity() {
     private fun readLoggerTimeReference(){
         val loggerTimeReference = UUID.fromString("a8a82636-10a4-11e3-ab8c-f23c91aec05e")
         ConnectionManager.readSensorCharacteristic(device, loggerTimeReference)
+    }
+
+    private  fun readLoggerIntervalTime(){
+        val loggerIntervalTime = UUID.fromString("a8a82634-10a4-11e3-ab8c-f23c91aec05e")
+        ConnectionManager.readSensorCharacteristic(device, loggerIntervalTime)
+    }
+
+    private  fun readLoggerFlashSize(){
+        val loggerFlashSize = UUID.fromString("a8a82950-10a4-11e3-ab8c-f23c91aec05e")
+        ConnectionManager.readSensorCharacteristic(device, loggerFlashSize)
+    }
+
+    private  fun readLoggerFlashUsage(){
+        val loggerFlashUsage = UUID.fromString("a8a82646-10a4-11e3-ab8c-f23c91aec05e")
+        ConnectionManager.readSensorCharacteristic(device, loggerFlashUsage)
+    }
+
+    @OptIn(ExperimentalStdlibApi::class)
+    private fun readLoggerData(){
+        val loggerControl  = UUID.fromString("a8a82635-10a4-11e3-ab8c-f23c91aec05e")
+        val loggerData  = UUID.fromString("a8a82637-10a4-11e3-ab8c-f23c91aec05e")
+        val test = "1".encodeToByteArray(0,1)
+        val test2 = "1".toByteArray()
+        val test3 = "1"
+        val test4 = byteArrayOf(0x1)
+        print(test)
+        print(test4)
+        characteristics.forEachByIndex { t -> if(t.uuid == loggerData){
+            ConnectionManager.enableNotifications(device, t )
+        } }
+
+        characteristics.forEachByIndex { t -> if(t.uuid == loggerControl){
+            ConnectionManager.writeCharacteristic(device, t, test4)
+        } }
+
+
     }
 }

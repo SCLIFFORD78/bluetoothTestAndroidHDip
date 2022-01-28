@@ -80,10 +80,10 @@
         android:id="@+id/log_scroll_view"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_marginTop="16dp"
+        android:layout_marginTop="28dp"
         android:layout_weight="1"
         android:padding="4dp"
-        app:layout_constraintTop_toBottomOf="@+id/time"
+        app:layout_constraintTop_toBottomOf="@+id/getLog"
         tools:layout_editor_absoluteX="0dp"
         >
 
@@ -102,7 +102,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="28dp"
-        android:text="Time"
+        android:text="Logger Time"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/data"
         />
@@ -111,11 +111,85 @@
         android:id="@+id/loggerRefTime"
         android:layout_width="252dp"
         android:layout_height="26dp"
-        android:layout_marginStart="40dp"
+        android:layout_marginStart="16dp"
         android:text="TextView"
         app:layout_constraintBottom_toBottomOf="@+id/time"
+        app:layout_constraintEnd_toEndOf="@+id/humidity"
         app:layout_constraintStart_toEndOf="@+id/time"
         app:layout_constraintTop_toTopOf="@+id/time"
+        />
+
+    <Button
+        android:id="@+id/interval"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="28dp"
+        android:text="Interval time"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/time"
+        />
+
+    <TextView
+        android:id="@+id/intervalText"
+        android:layout_width="250dp"
+        android:layout_height="27dp"
+        android:text="TextView"
+        app:layout_constraintBottom_toBottomOf="@+id/interval"
+        app:layout_constraintEnd_toEndOf="@+id/loggerRefTime"
+        app:layout_constraintTop_toTopOf="@+id/interval"
+        />
+
+    <Button
+        android:id="@+id/getLog"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="Get Log"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/getFlashUsage"
+        />
+
+    <Button
+        android:id="@+id/getFlashSize"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="28dp"
+        android:text="Flash Size"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/interval"
+        />
+
+    <TextView
+        android:id="@+id/flashSize"
+        android:layout_width="255dp"
+        android:layout_height="24dp"
+        android:text="TextView"
+        app:layout_constraintBottom_toBottomOf="@+id/getFlashSize"
+        app:layout_constraintEnd_toEndOf="@+id/intervalText"
+        app:layout_constraintStart_toStartOf="@+id/intervalText"
+        app:layout_constraintTop_toTopOf="@+id/getFlashSize"
+        app:layout_constraintVertical_bias="0.482"
+        />
+
+    <Button
+        android:id="@+id/getFlashUsage"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="Flash Usage"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/getFlashSize"
+        />
+
+    <TextView
+        android:id="@+id/flashUsage"
+        android:layout_width="256dp"
+        android:layout_height="24dp"
+        android:text="TextView"
+        app:layout_constraintBottom_toBottomOf="@+id/getFlashUsage"
+        app:layout_constraintEnd_toEndOf="@+id/flashSize"
+        app:layout_constraintStart_toStartOf="@+id/flashSize"
+        app:layout_constraintTop_toTopOf="@+id/getFlashUsage"
         />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
