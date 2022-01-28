@@ -56,10 +56,13 @@ import org.jetbrains.anko.collections.forEachByIndex
 import org.jetbrains.anko.noButton
 import org.jetbrains.anko.selector
 import org.jetbrains.anko.yesButton
+import org.json.JSONArray
+import org.json.JSONObject
 import java.nio.ByteBuffer
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.Objects
 import java.util.UUID
 
 
@@ -247,15 +250,7 @@ class BleSensorOperationsActivity : AppCompatActivity() {
                 }else if(characteristic.uuid == UUID.fromString("a8a82646-10a4-11e3-ab8c-f23c91aec05e")) {
                     val flashUsageTemp = toInt32(characteristic.value)
                     flashUsage.text = flashUsageTemp.toString()
-                }else if (characteristic.uuid == UUID.fromString("a8a82631-10a4-11e3-ab8c-f23c91aec05e")){
-                    val result = characteristic.value
-                    val temp =  (result[0].toInt().and(0xff)).or((result.get(1).toInt().rotateLeft(8)).and(0xff00) )
-                    val tempC = -46.85f + 175.72f * temp.toFloat() / 65536.toFloat()
-                    temperature.text = "${tempC} C"
-                    val hum =  (result[2].toInt().and(0xff)).or((result.get(3).toInt().rotateLeft(8)).and(0xff00) )//.and(0xff.toByte())
-                    val relHum = -6.0f + 125.0f * hum.toFloat() / 65536.toFloat()
-                    humidity.text = "${relHum}%"
-            }
+                }
                 log("Read from ${characteristic.uuid}: ${characteristic.value.toHexString()}")
             }
 
@@ -270,12 +265,9 @@ class BleSensorOperationsActivity : AppCompatActivity() {
             onCharacteristicChanged = { _, characteristic ->
                 if (characteristic.uuid == UUID.fromString("a8a82631-10a4-11e3-ab8c-f23c91aec05e")){
                     val result = characteristic.value
-                    val temp =  (result[0].toInt().and(0xff)).or((result.get(1).toInt().rotateLeft(8)).and(0xff00) )
-                    val tempC = -46.85f + 175.72f * temp.toFloat() / 65536.toFloat()
-                    temperature.text = "${tempC} C"
-                    val hum =  (result[2].toInt().and(0xff)).or((result.get(3).toInt().rotateLeft(8)).and(0xff00) )//.and(0xff.toByte())
-                    val relHum = -6.0f + 125.0f * hum.toFloat() / 65536.toFloat()
-                    humidity.text = "${relHum}%"
+                    val converted = convertTempAndHumidity(result)
+                    temperature.text = "${converted.get("Temperature")} C"
+                    humidity.text = "${converted.get("Humidity")}%"
                     }else if(characteristic.uuid == UUID.fromString("a8a82637-10a4-11e3-ab8c-f23c91aec05e")){
                         val test = characteristic.value
                         print(test)
@@ -355,7 +347,7 @@ class BleSensorOperationsActivity : AppCompatActivity() {
 
     private fun readData(){
         val bluSensorData  = UUID.fromString("a8a82631-10a4-11e3-ab8c-f23c91aec05e")
-        ConnectionManager.readSensorCharacteristic(device, bluSensorData )
+        ConnectionManager.enableSensorNotifications(device, bluSensorData )
     }
 
     private fun readLoggerTimeReference(){
@@ -382,6 +374,7 @@ class BleSensorOperationsActivity : AppCompatActivity() {
     private fun readLoggerData(){
         val loggerControl  = UUID.fromString("a8a82635-10a4-11e3-ab8c-f23c91aec05e")
         val loggerData  = UUID.fromString("a8a82637-10a4-11e3-ab8c-f23c91aec05e")
+
         characteristics.forEachByIndex { t -> if(t.uuid == loggerData){
             ConnectionManager.enableNotifications(device, t )
         } }
@@ -389,7 +382,19 @@ class BleSensorOperationsActivity : AppCompatActivity() {
         characteristics.forEachByIndex { t -> if(t.uuid == loggerControl){
             ConnectionManager.writeCharacteristic(device, t, byteArrayOf(0x1))
         } }
+    }
 
+    @OptIn(ExperimentalStdlibApi::class)
+    private fun convertTempAndHumidity (sensorData : ByteArray): JSONObject {
+        val result = JSONObject()
+        val temp =  (sensorData[0].toInt().and(0xff)).or((sensorData.get(1).toInt().rotateLeft(8)).and(0xff00) )
+        val tempC = -46.85f + 175.72f * temp.toFloat() / 65536.toFloat()
+        result.put("Temperature",tempC)
+        val hum =  (sensorData[2].toInt().and(0xff)).or((sensorData.get(3).toInt().rotateLeft(8)).and(0xff00) )//.and(0xff.toByte())
+        val relHum = -6.0f + 125.0f * hum.toFloat() / 65536.toFloat()
+        result.put("Humidity",relHum)
+
+        return result
 
     }
 }
