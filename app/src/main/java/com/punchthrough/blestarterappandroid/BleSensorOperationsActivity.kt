@@ -58,6 +58,7 @@ import org.jetbrains.anko.selector
 import org.jetbrains.anko.yesButton
 import org.json.JSONArray
 import org.json.JSONObject
+import timber.log.Timber
 import java.nio.ByteBuffer
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -94,6 +95,11 @@ class BleSensorOperationsActivity : AppCompatActivity() {
         }
     }
     private var notifyingCharacteristics = mutableListOf<UUID>()
+    private var intervilTime: Int = 0
+    private var loggerTimeReference: Int = 0
+    private var loggerFlashUsage: Int = 0
+    private var flashUsageReference: Int = 0
+    private var sensorLogData = arrayListOf<JSONObject>()
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -108,7 +114,11 @@ class BleSensorOperationsActivity : AppCompatActivity() {
             setDisplayShowTitleEnabled(true)
             title = getString(R.string.ble_playground)
         }
+        flashUsageReference = 0
 
+        //readLoggerIntervalTime()
+        //readLoggerTimeReference()
+        //readLoggerFlashUsage()
 
         battery.setOnClickListener {
             checkBattery()
@@ -235,12 +245,13 @@ class BleSensorOperationsActivity : AppCompatActivity() {
                     batteryLevel.text = "${Integer.decode(characteristic.value.toHexString())}%"
                 }else if(characteristic.uuid == UUID.fromString("a8a82636-10a4-11e3-ab8c-f23c91aec05e")){
                     val timestamp = toInt32(characteristic.value)
+                    loggerTimeReference = timestamp
                     val date = SimpleDateFormat("dd/MM/yyyy HH:mm:ss").format(Date(timestamp.toLong()*1000))
                     loggerRefTime.text = date.toString()
-                    print(timestamp)
                 }else if(characteristic.uuid == UUID.fromString("a8a82634-10a4-11e3-ab8c-f23c91aec05e")){
                     val interValSeconds = toInt16(characteristic.value)
                     intervalText.text = interValSeconds.toString()
+                    intervilTime = interValSeconds
                 }else if(characteristic.uuid == UUID.fromString("a8a82637-10a4-11e3-ab8c-f23c91aec05e")){
                     val test = characteristic.value
                     print(test)
@@ -249,6 +260,7 @@ class BleSensorOperationsActivity : AppCompatActivity() {
                     flashSize.text = flashSizeTemp.toString()
                 }else if(characteristic.uuid == UUID.fromString("a8a82646-10a4-11e3-ab8c-f23c91aec05e")) {
                     val flashUsageTemp = toInt32(characteristic.value)
+                    loggerFlashUsage = flashUsageTemp
                     flashUsage.text = flashUsageTemp.toString()
                 }
                 log("Read from ${characteristic.uuid}: ${characteristic.value.toHexString()}")
@@ -265,12 +277,40 @@ class BleSensorOperationsActivity : AppCompatActivity() {
             onCharacteristicChanged = { _, characteristic ->
                 if (characteristic.uuid == UUID.fromString("a8a82631-10a4-11e3-ab8c-f23c91aec05e")){
                     val result = characteristic.value
-                    val converted = convertTempAndHumidity(result)
+                    val converted = convertTempAndHumidity(result,0)
                     temperature.text = "${converted.get("Temperature")} C"
                     humidity.text = "${converted.get("Humidity")}%"
                     }else if(characteristic.uuid == UUID.fromString("a8a82637-10a4-11e3-ab8c-f23c91aec05e")){
-                        val test = characteristic.value
-                        print(test)
+                        val loggerData = characteristic.value
+
+                        if (flashUsageReference<=loggerFlashUsage && (flashUsageReference !=0)){
+                            if (loggerData.size > 0 ){
+                                sensorLogData.add(convertTempAndHumidity(loggerData.copyOfRange(0,4),loggerTimeReference))
+                                loggerTimeReference+=intervilTime
+                            }
+                            if (loggerData.size > 4){
+                                sensorLogData.add(convertTempAndHumidity(loggerData.copyOfRange(4,8),loggerTimeReference))
+                                loggerTimeReference+=intervilTime
+                                Timber.i("sensorDataLog Array${sensorLogData}")
+                                print("testy")
+
+                            }
+                            if (loggerData.size > 8){
+                                sensorLogData.add(convertTempAndHumidity(loggerData.copyOfRange(8,12),loggerTimeReference))
+                                loggerTimeReference+=intervilTime
+                            }
+                            if (loggerData.size > 12){
+                                sensorLogData.add(convertTempAndHumidity(loggerData.copyOfRange(12,16),loggerTimeReference))
+                                loggerTimeReference+=intervilTime
+                            }
+                        }else if(flashUsageReference>=loggerFlashUsage){
+                            flashUsageReference = 0
+                            loggerTimeReference = 0
+                            intervilTime - 0
+                            loggerFlashUsage = 0
+
+                        }
+                        flashUsageReference += loggerData.size
                     }
 
                 log("Value changed on ${characteristic.uuid}: ${characteristic.value.toHexString()}")
@@ -374,7 +414,9 @@ class BleSensorOperationsActivity : AppCompatActivity() {
     private fun readLoggerData(){
         val loggerControl  = UUID.fromString("a8a82635-10a4-11e3-ab8c-f23c91aec05e")
         val loggerData  = UUID.fromString("a8a82637-10a4-11e3-ab8c-f23c91aec05e")
-
+        readLoggerFlashUsage()
+        readLoggerTimeReference()
+        readLoggerIntervalTime()
         characteristics.forEachByIndex { t -> if(t.uuid == loggerData){
             ConnectionManager.enableNotifications(device, t )
         } }
@@ -385,7 +427,7 @@ class BleSensorOperationsActivity : AppCompatActivity() {
     }
 
     @OptIn(ExperimentalStdlibApi::class)
-    private fun convertTempAndHumidity (sensorData : ByteArray): JSONObject {
+    private fun convertTempAndHumidity (sensorData : ByteArray, timeStamp: Int): JSONObject {
         val result = JSONObject()
         val temp =  (sensorData[0].toInt().and(0xff)).or((sensorData.get(1).toInt().rotateLeft(8)).and(0xff00) )
         val tempC = -46.85f + 175.72f * temp.toFloat() / 65536.toFloat()
@@ -393,7 +435,8 @@ class BleSensorOperationsActivity : AppCompatActivity() {
         val hum =  (sensorData[2].toInt().and(0xff)).or((sensorData.get(3).toInt().rotateLeft(8)).and(0xff00) )//.and(0xff.toByte())
         val relHum = -6.0f + 125.0f * hum.toFloat() / 65536.toFloat()
         result.put("Humidity",relHum)
-
+        if (timeStamp > 0)
+            result.put("timeStamp", timeStamp)
         return result
 
     }
